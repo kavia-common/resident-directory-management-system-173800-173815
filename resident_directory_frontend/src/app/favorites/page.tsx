@@ -94,7 +94,15 @@ export default function FavoritesPage() {
                 <tbody>
                   {favorites.map((f) => (
                     <tr key={f.resident.id}>
-                      <td>{f.resident.name}</td>
+                      <td>
+                        <Link
+                          href={`/residents/${encodeURIComponent(
+                            f.resident.id
+                          )}`}
+                        >
+                          {f.resident.name}
+                        </Link>
+                      </td>
                       <td>{f.resident.unit}</td>
                       <td>
                         {f.resident.phone ? (

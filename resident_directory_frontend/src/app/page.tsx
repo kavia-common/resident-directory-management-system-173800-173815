@@ -179,7 +179,11 @@ export default function DirectoryPage() {
 
                     return (
                       <tr key={r.id}>
-                        <td>{r.name}</td>
+                        <td>
+                          <Link href={`/residents/${encodeURIComponent(r.id)}`}>
+                            {r.name}
+                          </Link>
+                        </td>
                         <td>{r.unit}</td>
                         <td>
                           {r.phone ? (
