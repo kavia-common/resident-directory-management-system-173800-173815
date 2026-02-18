@@ -113,6 +113,10 @@ export default function LoginPage() {
             {status.kind === "loading" ? "Signing in…" : "Sign in"}
           </button>
 
+          <Link className="btn" href="/forgot-password">
+            Forgot password
+          </Link>
+
           <button
             className="btn"
             onClick={() => {

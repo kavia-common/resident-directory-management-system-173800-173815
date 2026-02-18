@@ -16,6 +16,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/", label: "Directory" },
   { href: "/favorites", label: "Favorites" },
   { href: "/me", label: "My Profile" },
+  { href: "/change-password", label: "Change Password" },
   { href: "/my-requests", label: "My Requests", requireResident: true },
   { href: "/notifications", label: "Notifications", requireResident: true },
   { href: "/admin/residents", label: "Admin: Residents", requireAdmin: true },
