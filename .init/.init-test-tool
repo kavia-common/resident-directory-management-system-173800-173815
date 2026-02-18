@@ -1,0 +1,4 @@
+{
+    "command": "npm run build",
+    "working_directory": "/home/kavia/workspace/code-generation/resident-directory-management-system-173800-173815/resident_directory_frontend"
+}
