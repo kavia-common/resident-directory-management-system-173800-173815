@@ -14,6 +14,7 @@ type NavItem = {
 
 const NAV_ITEMS: NavItem[] = [
   { href: "/", label: "Directory" },
+  { href: "/favorites", label: "Favorites" },
   { href: "/me", label: "My Profile" },
   { href: "/my-requests", label: "My Requests", requireResident: true },
   { href: "/admin/residents", label: "Admin: Residents", requireAdmin: true },

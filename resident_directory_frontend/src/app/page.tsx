@@ -3,7 +3,15 @@
 import { useEffect, useMemo, useState } from "react";
 import AppShell from "@/components/AppShell";
 import type { Resident } from "@/lib/types";
-import { ApiError, apiListResidents } from "@/lib/apiClient";
+import {
+  ApiError,
+  apiAddFavorite,
+  apiGetFavoriteStatus,
+  apiListResidents,
+  apiRemoveFavorite,
+} from "@/lib/apiClient";
+import FavoriteButton from "@/components/FavoriteButton";
+import Link from "next/link";
 
 type LoadState =
   | { kind: "idle" }
@@ -24,6 +32,10 @@ export default function DirectoryPage() {
   const [unit, setUnit] = useState("");
   const [state, setState] = useState<LoadState>({ kind: "idle" });
 
+  // residentId -> favorite boolean (unknown => missing key)
+  const [favByResidentId, setFavByResidentId] = useState<Record<string, boolean>>({});
+  const [favErrorByResidentId, setFavErrorByResidentId] = useState<Record<string, string>>({});
+
   const title = "Resident Directory";
   const subtitle = "Search by name or filter by unit. Admins manage residents & approvals.";
 
@@ -32,11 +44,39 @@ export default function DirectoryPage() {
     return state.residents;
   }, [state]);
 
+  const loadFavoriteStatuses = async (rows: Resident[]) => {
+    // Best-effort; load in parallel and ignore individual failures (but show inline error).
+    await Promise.all(
+      rows.map(async (r) => {
+        try {
+          const res = await apiGetFavoriteStatus(r.id);
+          setFavByResidentId((prev) => ({ ...prev, [r.id]: res.isFavorite }));
+          setFavErrorByResidentId((prev) => {
+            const copy = { ...prev };
+            delete copy[r.id];
+            return copy;
+          });
+        } catch (e) {
+          const msg = errorToMessage(e);
+          setFavErrorByResidentId((prev) => ({ ...prev, [r.id]: msg }));
+        }
+      })
+    );
+  };
+
   const load = async () => {
     setState({ kind: "loading" });
     try {
-      const data = await apiListResidents({ q: q.trim() || undefined, unit: unit.trim() || undefined });
+      const data = await apiListResidents({
+        q: q.trim() || undefined,
+        unit: unit.trim() || undefined,
+      });
       setState({ kind: "loaded", residents: data });
+
+      // Reset favorite state to avoid stale entries for old result sets.
+      setFavByResidentId({});
+      setFavErrorByResidentId({});
+      void loadFavoriteStatuses(data);
     } catch (e) {
       setState({ kind: "error", message: errorToMessage(e) });
     }
@@ -128,29 +168,81 @@ export default function DirectoryPage() {
                     <th>Unit</th>
                     <th>Phone</th>
                     <th>Email</th>
+                    <th style={{ width: 260 }}>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {state.residents.map((r) => (
-                    <tr key={r.id}>
-                      <td>{r.name}</td>
-                      <td>{r.unit}</td>
-                      <td>
-                        {r.phone ? (
-                          r.phone
-                        ) : (
-                          <span style={{ opacity: 0.7, fontStyle: "italic" }}>Hidden/—</span>
-                        )}
-                      </td>
-                      <td>
-                        {r.email ? (
-                          r.email
-                        ) : (
-                          <span style={{ opacity: 0.7, fontStyle: "italic" }}>Hidden/—</span>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
+                  {state.residents.map((r) => {
+                    const isFavorite = favByResidentId[r.id] ?? false;
+                    const favKnown = Object.prototype.hasOwnProperty.call(favByResidentId, r.id);
+                    const favErr = favErrorByResidentId[r.id];
+
+                    return (
+                      <tr key={r.id}>
+                        <td>{r.name}</td>
+                        <td>{r.unit}</td>
+                        <td>
+                          {r.phone ? (
+                            r.phone
+                          ) : (
+                            <span style={{ opacity: 0.7, fontStyle: "italic" }}>Hidden/—</span>
+                          )}
+                        </td>
+                        <td>
+                          {r.email ? (
+                            r.email
+                          ) : (
+                            <span style={{ opacity: 0.7, fontStyle: "italic" }}>Hidden/—</span>
+                          )}
+                        </td>
+                        <td>
+                          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                            <FavoriteButton
+                              isFavorite={isFavorite}
+                              disabled={!favKnown && !!favErr}
+                              onToggle={async () => {
+                                // Optimistic update
+                                setFavByResidentId((prev) => ({ ...prev, [r.id]: !isFavorite }));
+                                try {
+                                  if (isFavorite) {
+                                    await apiRemoveFavorite(r.id);
+                                  } else {
+                                    await apiAddFavorite(r.id);
+                                  }
+                                  setFavErrorByResidentId((prev) => {
+                                    const copy = { ...prev };
+                                    delete copy[r.id];
+                                    return copy;
+                                  });
+                                } catch (e) {
+                                  // revert on failure
+                                  setFavByResidentId((prev) => ({ ...prev, [r.id]: isFavorite }));
+                                  setFavErrorByResidentId((prev) => ({ ...prev, [r.id]: errorToMessage(e) }));
+                                }
+                              }}
+                            />
+
+                            <Link className="btn" href={`/household/${encodeURIComponent(r.id)}`}>
+                              Household
+                            </Link>
+                          </div>
+
+                          {!favKnown && !favErr && (
+                            <div style={{ marginTop: 6, fontSize: 12, opacity: 0.85 }}>Loading favorite…</div>
+                          )}
+
+                          {favErr && (
+                            <div style={{ marginTop: 6, fontSize: 12 }}>
+                              <span style={{ color: "rgba(255,255,255,0.85)" }}>
+                                Fav status error:{" "}
+                              </span>
+                              <span style={{ opacity: 0.9 }}>{favErr}</span>
+                            </div>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
