@@ -5,11 +5,17 @@ import { usePathname, useRouter } from "next/navigation";
 import { useMemo } from "react";
 import { useAuth } from "@/hooks/useAuth";
 
-type NavItem = { href: string; label: string; requireAdmin?: boolean };
+type NavItem = {
+  href: string;
+  label: string;
+  requireAdmin?: boolean;
+  requireResident?: boolean;
+};
 
 const NAV_ITEMS: NavItem[] = [
   { href: "/", label: "Directory" },
   { href: "/me", label: "My Profile" },
+  { href: "/my-requests", label: "My Requests", requireResident: true },
   { href: "/admin/residents", label: "Admin: Residents", requireAdmin: true },
   { href: "/admin/approvals", label: "Admin: Approvals", requireAdmin: true },
   { href: "/admin/import-export", label: "Admin: Import/Export", requireAdmin: true },
@@ -30,7 +36,11 @@ export default function AppShell({
   const { user, logout, hasRole, state } = useAuth();
 
   const nav = useMemo(() => {
-    return NAV_ITEMS.filter((i) => !i.requireAdmin || hasRole("admin"));
+    return NAV_ITEMS.filter((i) => {
+      if (i.requireAdmin) return hasRole("admin");
+      if (i.requireResident) return hasRole("resident");
+      return true;
+    });
   }, [hasRole]);
 
   return (
