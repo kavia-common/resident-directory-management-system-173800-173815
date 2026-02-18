@@ -135,8 +135,20 @@ export default function DirectoryPage() {
                     <tr key={r.id}>
                       <td>{r.name}</td>
                       <td>{r.unit}</td>
-                      <td>{r.phone || <span style={{ opacity: 0.7 }}>—</span>}</td>
-                      <td>{r.email || <span style={{ opacity: 0.7 }}>—</span>}</td>
+                      <td>
+                        {r.phone ? (
+                          r.phone
+                        ) : (
+                          <span style={{ opacity: 0.7, fontStyle: "italic" }}>Hidden/—</span>
+                        )}
+                      </td>
+                      <td>
+                        {r.email ? (
+                          r.email
+                        ) : (
+                          <span style={{ opacity: 0.7, fontStyle: "italic" }}>Hidden/—</span>
+                        )}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
